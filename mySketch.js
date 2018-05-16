@@ -81,6 +81,10 @@ function keyPressed() {
     if (keyCode === 73) {
         display_image = display_image === false;
     }
+    if (keyCode === UP_ARROW) board.instruction_queue.add_instruction(new Instruction("down"));
+    if (keyCode === DOWN_ARROW) board.instruction_queue.add_instruction(new Instruction("up"));
+    if (keyCode === LEFT_ARROW) board.instruction_queue.add_instruction(new Instruction("right"));
+    if (keyCode === RIGHT_ARROW) board.instruction_queue.add_instruction(new Instruction("left"));
 }
 
 class Board {
@@ -282,16 +286,17 @@ class Title {
 
     draw() {
         if (this.is_blank) return;  // 空方块不绘图
-        fill(color(255, 0, 25));
+        fill(color(0, 0, 0));
         if (display_image === false)
             rect(this.position.real_x, this.position.real_y, board_size/4 - 20, board_size/4 - 20);
         else image(this.img, this.position.real_x, this.position.real_y, board_size/4, board_size/4);
 
-        if (display_number === true)  // 无论是有没有开启显示数字，如果没有加载图片，一律显示数字
-            fill(color(0, 0, 0));
+        if (!display_number) { // 无论是有没有开启显示数字，如果没有加载图片，一律显示数字
+            fill(color(255, 0, 0));
             textSize(44);
             textAlign(CENTER);
             text(str(this.number), this.position.real_x, this.position.real_y);
+        }
     }
 }
 
