@@ -2,6 +2,7 @@ let display_number;  // 显示数字
 let display_image;  // 显示图片
 let board;  // 游戏版，单例
 let difficulty = 200;
+let board_size = 400;
 let duck_1;
 let duck_2;
 let duck_3;
@@ -40,7 +41,7 @@ function preload() {
 }
 
 function setup() {
-	createCanvas(800, 800);  // 创建画布
+	createCanvas(board_size, board_size);  // 创建画布
     background(200);
     imageMode(CENTER);
 	rectMode(CENTER);  // 设置图形的原点为中心点
@@ -52,10 +53,11 @@ function draw() {
     clear();
     background(200);
     board.draw();
+    if (board.instruction_queue.is_empty()) board.check_win();
 }
 
 function mouseClicked() {
-    if (mouseX < 0 || mouseX > 800 || mouseY < 0 || mouseY > 800){
+    if (mouseX < 0 || mouseX > board_size || mouseY < 0 || mouseY > board_size){
         return;
     }
     let x = board.blank_tile.position.real_x;
@@ -99,6 +101,20 @@ class Board {
         }
         this.instruction_queue = new InstructionQueue(0);
     }
+
+    // 检查是否获胜
+    check_win() {
+        for (let t of this.tiles) {
+            if (t.position.pos_no !== t.number) return;
+        }
+        textAlign(CENTER);
+        textSize(16);
+        fill(255, 0, 0);
+        text('Puzzle', this.blank_tile.position.real_x, this.blank_tile.position.real_y);
+        text('Completed!', this.blank_tile.position.real_x, this.blank_tile.position.real_y + 14);
+    }
+
+
 
     static _shuffle(a) {
         let length = a.length;
@@ -213,8 +229,8 @@ class Position {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.real_x = 106 + x * 196;
-        this.real_y = 106 + y * 196;
+        this.real_x = board_size/8 + x*board_size/4;
+        this.real_y = board_size/8 + y*board_size/4;
         this.pos_no = 4 * y + x + 1;
     }
 
@@ -257,6 +273,7 @@ class Title {
         this.position = new Position(x, y);
         if (is_blank) { // 空方块只有位置，没有显示
             this.is_blank = true;
+            this.number = number;
             return;
         }
         this.number = number;
@@ -267,18 +284,20 @@ class Title {
         if (this.is_blank) return;  // 空方块不绘图
         fill(color(255, 0, 25));
         if (display_image === false)
-            rect(this.position.real_x, this.position.real_y, 180, 180);
-        else image(this.img, this.position.real_x, this.position.real_y, 200, 200);
+            rect(this.position.real_x, this.position.real_y, board_size/4 - 20, board_size/4 - 20);
+        else image(this.img, this.position.real_x, this.position.real_y, board_size/4, board_size/4);
 
         if (display_number === true)  // 无论是有没有开启显示数字，如果没有加载图片，一律显示数字
             fill(color(0, 0, 0));
             textSize(44);
+            textAlign(CENTER);
             text(str(this.number), this.position.real_x, this.position.real_y);
     }
 }
 
 // 打乱顺序
 function shuffle_tiles(){
+    board.instruction_queue.flush_queue();
     let random_ins_queue = new InstructionQueue(difficulty);
     for (ins of random_ins_queue.unexcuted_queue){
         board.instruction_queue.add_instruction(ins);
@@ -323,6 +342,21 @@ class Instruction {
         }
     }
 
+    reversed_instruction(){
+        switch (this.instruction) {
+            case 'up':
+                return 'down';
+            case 'down':
+                return 'up';
+            case 'left':
+                return 'right';
+            case 'right':
+                return 'left';
+            default:
+                throw Error('no such instruction');
+        }
+    }
+
     reverse() {
         switch (this.instruction) {
             case 'up':
@@ -361,7 +395,31 @@ class InstructionQueue {
         return this.unexcuted_queue.length === 0;
     }
 
+    flush_queue() {
+        this.excuted_queue = [];
+        this.unexcuted_queue = [];
+    }
+
+    // 简化指令队列
+    simplify_instruction_queue() {
+        let temp_queue = [];
+        let count = 0;
+        for (let i = 0; i < this.excuted_queue.length - 1; i++) {
+            if (this.excuted_queue[i].instruction === this.excuted_queue[i+1].reversed_instruction()){
+                i++;
+                count++;
+            }
+            else{
+                temp_queue.push(this.excuted_queue[i]);
+            }
+        }
+        temp_queue.push(this.excuted_queue.pop());
+        this.excuted_queue = temp_queue;
+        if (count !== 0) this.simplify_instruction_queue();
+    }
+
     reverse_all() {
+        this.simplify_instruction_queue();
         for (ins of this.excuted_queue) {
             ins.reverse();
         }
