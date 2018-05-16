@@ -3,6 +3,8 @@ let display_image;  // 显示图片
 let board;  // 游戏版，单例
 let difficulty = 200;
 let board_size = 400;
+let display_shade = true;  // 显示阴影
+let enable_play = false;  // 是否允许交互
 let duck_1;
 let duck_2;
 let duck_3;
@@ -57,6 +59,7 @@ function draw() {
 }
 
 function mouseClicked() {
+    if (!enable_play) return;
     if (mouseX < 0 || mouseX > board_size || mouseY < 0 || mouseY > board_size){
         return;
     }
@@ -75,6 +78,7 @@ function mouseClicked() {
 }
 
 function keyPressed() {
+    if(!enable_play) return;
     if (keyCode === 68) {
         display_number = display_number === false;
     }
@@ -108,6 +112,8 @@ class Board {
 
     // 检查是否获胜
     check_win() {
+        if (display_shade) return;
+        if (!enable_play) return;
         for (let t of this.tiles) {
             if (t.position.pos_no !== t.number) return;
         }
@@ -221,9 +227,14 @@ class Board {
             let result = this.execute(this.instruction_queue.execute_one_instruction());
             if (result === false) this.instruction_queue.remove_one_executed_invalid_instruction();
         }
+        else enable_play = true;
         // 再渲染图形
         for (let i of this.tiles) {
             i.draw();
+        }
+        if (display_shade) {
+            fill('rgba(70,70,70, 0.75)');
+            rect(board_size/2, board_size/2, board_size, board_size);
         }
     }
 }
@@ -302,6 +313,7 @@ class Title {
 
 // 打乱顺序
 function shuffle_tiles(){
+    display_shade = false;
     board.instruction_queue.flush_queue();
     let random_ins_queue = new InstructionQueue(difficulty);
     for (ins of random_ins_queue.unexcuted_queue){
@@ -314,6 +326,7 @@ function shuffle_tiles(){
 
 // 自动完成
 function auto_complete(){
+    enable_play = false;
     board.instruction_queue.reverse_all();
     frameRate(30);
     document.getElementById('shuffle_btn').disabled = false;
