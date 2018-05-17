@@ -227,7 +227,7 @@ class Board {
             let result = this.execute(this.instruction_queue.execute_one_instruction());
             if (result === false) this.instruction_queue.remove_one_executed_invalid_instruction();
         }
-        else enable_play = true;
+        if (this.instruction_queue.is_empty() === false && !display_shade) enable_play = true;
         // 再渲染图形
         for (let i of this.tiles) {
             i.draw();
